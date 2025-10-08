@@ -29,7 +29,7 @@ Uma aplicação web moderna desenvolvida em Angular que permite explorar e desco
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/pokedex-challenge.git
+git clone https://github.com/yuriandrade91/pokedex-challenge.git
 ```
 
 2. Instale as dependências:
