@@ -1,0 +1,214 @@
+<div class="pokemon-detail-container" [style.background]="getGradientColors()">
+  @if (loading()) {
+  <div class="loading-container" role="status" aria-live="polite">
+    <div class="pokeball-loader"></div>
+    <p class="loading-text">Carregando Pokémon...</p>
+  </div>
+  } @if (error()) {
+  <div class="error-container" role="alert">
+    <h2>Ops! Algo deu errado</h2>
+    <p>{{ error() }}</p>
+    <button class="btn-primary" (click)="goBack()">Voltar</button>
+  </div>
+  } @if (!loading() && !error() && pokemon()) {
+  <div class="detail-content">
+    <header class="detail-header">
+      <button class="back-button" (click)="goBack()" aria-label="Voltar para lista">
+        <span class="back-icon">←</span>
+        <span class="back-text">Voltar</span>
+      </button>
+
+      <div class="pokemon-header-info">
+        <h1 class="pokemon-name">
+          {{ capitalize(pokemon()!.name) }}
+        </h1>
+        <span class="pokemon-number">
+          {{ formatPokemonNumber(pokemon()!.id) }}
+        </span>
+      </div>
+    </header>
+
+    <div class="pokemon-image-card">
+      <div class="types-container">
+        @for (type of pokemon()!.types; track type.slot) {
+        <span class="type-badge" [style.background-color]="getTypeColor(type.type.name)">
+          {{ capitalize(type.type.name) }}
+        </span>
+        }
+      </div>
+
+      <div class="image-wrapper">
+        <img
+          [src]="
+            pokemon()!.sprites.other['official-artwork'].front_default ||
+            pokemon()!.sprites.front_default
+          "
+          [alt]="capitalize(pokemon()!.name)"
+          class="pokemon-image"
+          (error)="onImageError($event)"
+        />
+      </div>
+
+      @if (getGenus()) {
+      <p class="pokemon-genus">{{ getGenus() }}</p>
+      }
+    </div>
+
+    <div class="tabs-container">
+      <nav class="tabs" role="tablist" aria-label="Informações do Pokémon">
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'about'"
+          (click)="setActiveTab('about')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'about'"
+          aria-controls="about-panel"
+        >
+          Sobre
+        </button>
+        <button
+          class="tab"
+          [class.active]="activeTab() === 'stats'"
+          (click)="setActiveTab('stats')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'stats'"
+          aria-controls="stats-panel"
+        >
+          Estatísticas
+        </button>
+      </nav>
+
+      <div class="tab-content">
+        @if (activeTab() === 'about') {
+        <div class="tab-panel" id="about-panel" role="tabpanel" aria-labelledby="about-tab">
+          @if (getDescription()) {
+          <div class="description-section">
+            <h2 class="section-title">Descrição</h2>
+            <p class="description-text">
+              {{ getDescription() }}
+            </p>
+          </div>
+          }
+
+          <div class="info-grid">
+            <div class="info-card">
+              <span class="info-label">Altura</span>
+              <span class="info-value">
+                {{ formatHeight(pokemon()!.height) }}
+              </span>
+            </div>
+
+            <div class="info-card">
+              <span class="info-label">Peso</span>
+              <span class="info-value">
+                {{ formatWeight(pokemon()!.weight) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="abilities-section">
+            <h2 class="section-title">Habilidades</h2>
+            <div class="abilities-list">
+              @for (ability of pokemon()!.abilities; track ability.slot) {
+              <div class="ability-item">
+                <span class="ability-name">
+                  {{ capitalize(ability.ability.name.replace('-', ' ')) }}
+                </span>
+                @if (ability.is_hidden) {
+                <span class="hidden-badge">Oculta</span>
+                }
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        } @if (activeTab() === 'stats') {
+        <div class="tab-panel" id="stats-panel" role="tabpanel" aria-labelledby="stats-tab">
+          <div class="stats-section">
+            <h2 class="section-title">Status Base</h2>
+
+            <div class="stats-list">
+              @for (stat of pokemon()!.stats; track stat.stat.name) {
+              <div class="stat-item">
+                <div class="stat-header">
+                  <span class="stat-name">
+                    {{ getStatName(stat.stat.name) }}
+                  </span>
+                  <span class="stat-value">
+                    {{ stat.base_stat }}
+                  </span>
+                </div>
+                <div class="stat-bar-container">
+                  <div
+                    class="stat-bar"
+                    [style.width.%]="getStatPercentage(stat.base_stat)"
+                    [style.background-color]="getStatColor(stat.base_stat)"
+                    role="progressbar"
+                    [attr.aria-valuenow]="stat.base_stat"
+                    aria-valuemin="0"
+                    aria-valuemax="255"
+                    [attr.aria-label]="getStatName(stat.stat.name)"
+                  ></div>
+                </div>
+              </div>
+              }
+            </div>
+
+            <div class="total-stats">
+              <span class="total-label">Total:</span>
+              <span class="total-value">{{ getTotalStats() }}</span>
+            </div>
+          </div>
+
+          <div class="effectiveness-section">
+            <h2 class="section-title">Tipos</h2>
+            <div class="type-list">
+              @for (type of pokemon()!.types; track type.slot) {
+              <div class="type-item" [style.background-color]="getTypeColor(type.type.name)">
+                {{ capitalize(type.type.name) }}
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="sprites-section">
+      <h2 class="section-title">Sprites</h2>
+      <div class="sprites-grid">
+        @if (pokemon()!.sprites.front_default) {
+        <div class="sprite-item">
+          <img [src]="pokemon()!.sprites.front_default" alt="Sprite frontal" class="sprite-image" />
+          <span class="sprite-label">Frontal</span>
+        </div>
+        } @if (pokemon()!.sprites.back_default) {
+        <div class="sprite-item">
+          <img [src]="pokemon()!.sprites.back_default" alt="Sprite traseira" class="sprite-image" />
+          <span class="sprite-label">Traseira</span>
+        </div>
+        } @if (pokemon()!.sprites.front_shiny) {
+        <div class="sprite-item">
+          <img
+            [src]="pokemon()!.sprites.front_shiny"
+            alt="Sprite shiny frontal"
+            class="sprite-image"
+          />
+          <span class="sprite-label">Shiny</span>
+        </div>
+        } @if (pokemon()!.sprites.back_shiny) {
+        <div class="sprite-item">
+          <img
+            [src]="pokemon()!.sprites.back_shiny"
+            alt="Sprite shiny traseira"
+            class="sprite-image"
+          />
+          <span class="sprite-label">Shiny Traseira</span>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+  }
+</div>

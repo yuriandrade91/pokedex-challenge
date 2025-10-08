@@ -1,0 +1,210 @@
+<!-- src/app/features/pokemon-list/pokemon-list.component.html -->
+
+<div class="pokemon-list-container">
+  <header class="header">
+    <div class="header-content">
+      <h1 class="title">Pokédex</h1>
+    </div>
+  </header>
+
+  <section class="filters-section" role="search" aria-label="Busca e filtros">
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <input
+          type="search"
+          class="search-input"
+          placeholder="Buscar por nome ou número..."
+          [value]="searchInputValue()"
+          (input)="onSearchInput($event)"
+          aria-label="Buscar Pokémon"
+          autocomplete="off"
+        />
+      </div>
+
+      <button
+        class="filter-toggle-btn"
+        (click)="toggleFilters()"
+        [class.active]="showFilters()"
+        aria-label="Alternar filtros"
+        [attr.aria-expanded]="showFilters()"
+      >
+        <span>Filtros</span>
+        @if (selectedTypes().length > 0) {
+        <span class="filter-badge">{{ selectedTypes().length }}</span>
+        }
+      </button>
+    </div>
+
+    @if (showFilters() || pagination().totalItems > 20) {
+    <div class="type-filters" [@slideDown]>
+      <div class="type-filters-header">
+        <h2 class="filters-title">Filtrar por tipo:</h2>
+        @if (selectedTypes().length > 0) {
+        <button class="clear-filters-btn" (click)="clearAllFilters()" type="button">
+          Limpar filtros
+        </button>
+        }
+      </div>
+
+      <div class="type-buttons" role="group" aria-label="Tipos de Pokémon">
+        @for (type of availableTypes(); track type) {
+        <button
+          class="type-btn"
+          [class.selected]="isTypeSelected(type)"
+          [style.background-color]="getTypeColor(type)"
+          (click)="toggleType(type)"
+          [attr.aria-pressed]="isTypeSelected(type)"
+          type="button"
+        >
+          {{ capitalize(type) }}
+        </button>
+        }
+      </div>
+    </div>
+    } @if (selectedTypes().length > 0 || searchTerm()) {
+    <div class="active-filters">
+      <span class="active-filters-label">Filtros ativos:</span>
+
+      @if (searchTerm()) {
+      <span class="active-filter-chip">
+        Busca: "{{ searchTerm() }}"
+        <button (click)="clearSearch()" aria-label="Remover filtro de busca" type="button">
+          ✕
+        </button>
+      </span>
+      } @for (type of selectedTypes(); track type) {
+      <span class="active-filter-chip" [style.background-color]="getTypeColor(type)">
+        {{ capitalize(type) }}
+        <button
+          (click)="toggleType(type)"
+          [attr.aria-label]="'Remover filtro ' + type"
+          type="button"
+        >
+          ✕
+        </button>
+      </span>
+      }
+    </div>
+    }
+  </section>
+  @if (loading()) {
+  <div class="loading-container" role="status" aria-live="polite">
+    <div class="pokeball-loader"></div>
+    <p class="loading-text">Carregando Pokémon...</p>
+  </div>
+  } @if (error()) {
+  <div class="error-container" role="alert">
+    <h2>Ops! Algo deu errado</h2>
+    <p>{{ error() }}</p>
+    <button class="retry-btn" (click)="loadPokemons()">Tentar novamente</button>
+  </div>
+  } @if (!loading() && !error()) {
+  <main class="pokemon-grid-container">
+    @if (pokemons().length === 0) {
+    <div class="empty-state">
+      <span class="empty-icon">😢</span>
+      <h2>Nenhum Pokémon encontrado</h2>
+      <p>Tente ajustar seus filtros de busca</p>
+      <button class="clear-btn" (click)="clearAllFilters()">Limpar filtros</button>
+    </div>
+    } @else {
+    <div class="results-info">
+      <p>
+        Mostrando {{ pokemons().length }} de {{ pagination().totalItems }}
+        Pokémon
+      </p>
+    </div>
+
+    <div class="pokemon-grid" role="list">
+      @for (pokemon of pokemons(); track pokemon.id) {
+      <article
+        class="pokemon-card"
+        (click)="viewPokemonDetails(pokemon.id)"
+        (keydown.enter)="viewPokemonDetails(pokemon.id)"
+        (keydown.space)="viewPokemonDetails(pokemon.id)"
+        tabindex="0"
+        role="listitem"
+        [attr.aria-label]="'Ver detalhes de ' + capitalize(pokemon.name)"
+      >
+        <div class="pokemon-card-header">
+          <span class="pokemon-number">
+            {{ formatPokemonNumber(pokemon.id) }}
+          </span>
+        </div>
+
+        <div class="pokemon-image-container">
+          <img
+            [src]="
+              pokemon.sprites.other['official-artwork'].front_default ||
+              pokemon.sprites.front_default
+            "
+            [alt]="capitalize(pokemon.name)"
+            class="pokemon-image"
+            loading="lazy"
+            (error)="onImageError($event)"
+          />
+        </div>
+
+        <div class="pokemon-info">
+          <h3 class="pokemon-name">{{ capitalize(pokemon.name) }}</h3>
+
+          <div class="pokemon-types">
+            @for (type of pokemon.types; track type.slot) {
+            <span class="pokemon-type" [style.background-color]="getTypeColor(type.type.name)">
+              {{ capitalize(type.type.name) }}
+            </span>
+            }
+          </div>
+        </div>
+      </article>
+      }
+    </div>
+    }
+  </main>
+
+  @if (pagination().totalPages > 1 && pokemons().length > 0) {
+  <nav class="pagination" aria-label="Navegação de páginas">
+    <button
+      class="pagination-btn"
+      (click)="previousPage()"
+      [disabled]="pagination().currentPage === 1"
+      aria-label="Página anterior"
+    >
+      ← Anterior
+    </button>
+
+    <div class="pagination-numbers">
+      @if (pagination().currentPage > 3) {
+      <button class="pagination-number" (click)="goToPage(1)">1</button>
+      @if (pagination().currentPage > 4) {
+      <span class="pagination-ellipsis">...</span>
+      } } @for (page of getPageNumbers(); track page) {
+      <button
+        class="pagination-number"
+        [class.active]="page === pagination().currentPage"
+        (click)="goToPage(page)"
+        [attr.aria-current]="page === pagination().currentPage ? 'page' : null"
+      >
+        {{ page }}
+      </button>
+      } @if (pagination().currentPage < pagination().totalPages - 2) { @if (pagination().currentPage
+      < pagination().totalPages - 3) {
+      <span class="pagination-ellipsis">...</span>
+      }
+      <button class="pagination-number" (click)="goToPage(pagination().totalPages)">
+        {{ pagination().totalPages }}
+      </button>
+      }
+    </div>
+
+    <button
+      class="pagination-btn"
+      (click)="nextPage()"
+      [disabled]="pagination().currentPage === pagination().totalPages"
+      aria-label="Próxima página"
+    >
+      Próxima →
+    </button>
+  </nav>
+  } }
+</div>
