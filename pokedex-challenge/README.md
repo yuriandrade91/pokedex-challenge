@@ -2,6 +2,10 @@
 
 Uma aplicação web moderna desenvolvida em Angular que permite explorar e descobrir informações sobre Pokémon, utilizando a [PokéAPI](https://pokeapi.co/).
 
+<img width="808" height="998" alt="image" src="https://github.com/user-attachments/assets/e037497a-f04e-4b21-bac2-062b4f5bf979" />
+<img width="808" height="998" alt="image" src="https://github.com/user-attachments/assets/a8c6ba4c-4cf4-42bd-9d82-eb7a59f317bb" />
+<img width="808" height="998" alt="image" src="https://github.com/user-attachments/assets/aa16913a-c5ce-4f8c-ab33-68c27e42a4b8" />
+
 ## 🚀 Características
 
 - Lista paginada de Pokémon com busca
