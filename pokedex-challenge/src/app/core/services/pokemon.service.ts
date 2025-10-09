@@ -24,14 +24,13 @@ export class PokemonService {
   private _typesCache: string[] | null = null;
 
   getPokemonList(offset: number = 0, limit: number = 20): Observable<PokemonListResponse> {
-    const url = `${this._baseUrl}/pokemon?offset=${offset}&limit=${limit}`;
+    const url = `${this._baseUrl}${PATHS.POKEMON}?offset=${offset}&limit=${limit}`;
     return this._httpClient.get<PokemonListResponse>(url);
   }
 
   getPokemonDetails(nameOrId: string | number): Observable<Pokemon> {
     const cacheKey = nameOrId.toString();
 
-    // Verifica cache
     if (this._pokemonCache.has(cacheKey)) {
       return of(this._pokemonCache.get(cacheKey)!);
     }
@@ -40,7 +39,6 @@ export class PokemonService {
 
     return this._httpClient.get<Pokemon>(url).pipe(
       map((pokemon) => {
-        // Armazena no cache
         this._pokemonCache.set(cacheKey, pokemon);
         return pokemon;
       })

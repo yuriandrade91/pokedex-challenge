@@ -1,12 +1,7 @@
-// src/app/core/services/pokemon-state.service.ts
-
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PokemonService } from './pokemon.service';
 import { PaginationState, Pokemon } from '../../shared/models/pokemon.model';
-
-// Serviço de gerenciamento de estado global usando Angular Signals
-
 @Injectable({
   providedIn: 'root',
 })
@@ -54,18 +49,22 @@ export class PokemonStateService {
   });
 
   currentPagePokemons = computed(() => {
-    const filtered = this.filteredPokemons();
-    const page = this._currentPageState();
-    const pageSize = this._pageSizeState();
-
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-
-    return filtered.slice(startIndex, endIndex);
+    // Se tiver filtros ativos, usa a lógica de filtragem
+    if (this._searchTermState() || this._selectedTypesState().length > 0) {
+      const filtered = this.filteredPokemons();
+      const page = this._currentPageState();
+      const pageSize = this._pageSizeState();
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      return filtered.slice(startIndex, endIndex);
+    }
+    
+    // Se não tiver filtros, retorna os pokémons da página atual
+    return this._allPokemonState();
   });
 
   paginationState = computed<PaginationState>(() => {
-    const totalItems = this.filteredPokemons().length;
+    const totalItems = this._totalItemsState();
     const pageSize = this._pageSizeState();
     const currentPage = this._currentPageState();
 
@@ -86,13 +85,15 @@ export class PokemonStateService {
     this._errorState.set(null);
 
     try {
-      const listResponse = await this.pokemonService.getPokemonList(0, limit).toPromise();
+      const pageSize = this._pageSizeState();
+      const listResponse = await this.pokemonService.getPokemonList(0, pageSize).toPromise();
 
       if (!listResponse) {
         throw new Error('Erro ao carregar lista de Pokémon');
       }
 
-      this._totalItemsState.set(listResponse.count);
+      const totalItems = Math.min(listResponse.count, limit);
+      this._totalItemsState.set(totalItems);
 
       const pokemons = await this.pokemonService.getPokemonBatch(listResponse.results).toPromise();
 
@@ -108,38 +109,6 @@ export class PokemonStateService {
     }
   }
 
-  loadMorePokemons() {
-    const currentCount = this._allPokemonState().length;
-    const limit = 20;
-
-    this._loadingState.set(true);
-
-    this.pokemonService.getPokemonList(currentCount, limit).subscribe({
-      next: (listResponse) => {
-        if (!listResponse) {
-          this._loadingState.set(false);
-          return;
-        }
-
-        this.pokemonService.getPokemonBatch(listResponse.results).subscribe({
-          next: (newPokemons) => {
-            if (newPokemons) {
-              this._allPokemonState.update((current) => [...current, ...newPokemons]);
-            }
-            this._loadingState.set(false);
-          },
-          error: (err) => {
-            console.error('Error loading more pokemons:', err);
-            this._loadingState.set(false);
-          },
-        });
-      },
-      error: (err) => {
-        console.error('Error loading more pokemons:', err);
-        this._loadingState.set(false);
-      },
-    });
-  }
 
   updateSearchTerm(term: string) {
     this._searchTermState.set(term);
@@ -174,24 +143,44 @@ export class PokemonStateService {
     this._currentPageState.set(1);
   }
 
-  goToPage(page: number) {
+  async goToPage(page: number) {
     const maxPage = this.paginationState().totalPages;
-
     if (page < 1 || page > maxPage) return;
 
     this._currentPageState.set(page);
 
+    const pageSize = this._pageSizeState();
+    const offset = (page - 1) * pageSize;
+    const totalItems = this._totalItemsState();
+    const adjustedPageSize = Math.min(pageSize, totalItems - offset);
+    
+    this._loadingState.set(true);
+    try {
+      const listResponse = await this.pokemonService.getPokemonList(offset, adjustedPageSize).toPromise();
+      if (listResponse) {
+        const newPokemons = await this.pokemonService.getPokemonBatch(listResponse.results).toPromise();
+        if (newPokemons) {
+          this._allPokemonState.set(newPokemons);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading pokemons for page:', page, err);
+      this._errorState.set('Erro ao carregar pokémons');
+    } finally {
+      this._loadingState.set(false);
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  nextPage() {
+  async nextPage() {
     const current = this._currentPageState();
-    this.goToPage(current + 1);
+    await this.goToPage(current + 1);
   }
 
-  previousPage() {
+  async previousPage() {
     const current = this._currentPageState();
-    this.goToPage(current - 1);
+    await this.goToPage(current - 1);
   }
 
   setPageSize(size: number) {

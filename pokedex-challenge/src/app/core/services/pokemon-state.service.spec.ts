@@ -15,12 +15,12 @@ describe('PokemonStateService', () => {
     other: {
       'official-artwork': {
         front_default: 'url',
-        front_shiny: 'url'
+        front_shiny: 'url',
       },
       dream_world: {
-        front_default: 'url'
-      }
-    }
+        front_default: 'url',
+      },
+    },
   };
 
   const mockPokemon: Pokemon[] = [
@@ -33,7 +33,7 @@ describe('PokemonStateService', () => {
       weight: 69,
       height: 7,
       abilities: [],
-      species: { name: 'bulbasaur', url: '' }
+      species: { name: 'bulbasaur', url: '' },
     },
     {
       id: 2,
@@ -44,8 +44,8 @@ describe('PokemonStateService', () => {
       weight: 130,
       height: 10,
       abilities: [],
-      species: { name: 'ivysaur', url: '' }
-    }
+      species: { name: 'ivysaur', url: '' },
+    },
   ];
 
   beforeEach(() => {
@@ -54,14 +54,11 @@ describe('PokemonStateService', () => {
       'getPokemonBatch',
       'getAllTypes',
       'searchPokemon',
-      'filterByTypes'
+      'filterByTypes',
     ]);
-    
+
     TestBed.configureTestingModule({
-      providers: [
-        PokemonStateService,
-        { provide: PokemonService, useValue: spy }
-      ]
+      providers: [PokemonStateService, { provide: PokemonService, useValue: spy }],
     });
 
     service = TestBed.inject(PokemonStateService);
@@ -109,7 +106,7 @@ describe('PokemonStateService', () => {
     it('should toggle type filter', () => {
       service.toggleTypeFilter('grass');
       expect(service.selectedTypes()).toContain('grass');
-      
+
       service.toggleTypeFilter('grass');
       expect(service.selectedTypes()).not.toContain('grass');
     });
@@ -160,10 +157,10 @@ describe('PokemonStateService', () => {
 
     it('should navigate between pages', () => {
       service.setPageSize(1);
-      
+
       service.nextPage();
       expect(service.currentPage()).toBe(2);
-      
+
       service.previousPage();
       expect(service.currentPage()).toBe(1);
     });
@@ -173,11 +170,18 @@ describe('PokemonStateService', () => {
     it('should handle successful initial load', async () => {
       const listResponse = {
         count: 2,
-        results: mockPokemon.map(p => ({ name: p.name, url: `https://pokeapi.co/api/v2/pokemon/${p.id}/` }))
+        results: mockPokemon.map((p) => ({
+          name: p.name,
+          url: `https://pokeapi.co/api/v2/pokemon/${p.id}/`,
+        })),
       };
 
-      pokemonService.getPokemonList.and.returnValue({ toPromise: () => Promise.resolve(listResponse) } as any);
-      pokemonService.getPokemonBatch.and.returnValue({ toPromise: () => Promise.resolve(mockPokemon) } as any);
+      pokemonService.getPokemonList.and.returnValue({
+        toPromise: () => Promise.resolve(listResponse),
+      } as any);
+      pokemonService.getPokemonBatch.and.returnValue({
+        toPromise: () => Promise.resolve(mockPokemon),
+      } as any);
 
       await service.loadInitialPokemons(2);
 
@@ -188,31 +192,15 @@ describe('PokemonStateService', () => {
 
     it('should handle error in initial load', async () => {
       const error = new Error('Failed to load');
-      pokemonService.getPokemonList.and.returnValue({ toPromise: () => Promise.reject(error) } as any);
+      pokemonService.getPokemonList.and.returnValue({
+        toPromise: () => Promise.reject(error),
+      } as any);
 
       await service.loadInitialPokemons();
 
       expect(service.loading()).toBeFalse();
       expect(service.error()).toBe('Failed to load');
       expect(service.allPokemon()).toEqual([]);
-    });
-
-    it('should load more pokemons', () => {
-      service['_allPokemonState'].set(mockPokemon);
-      const newPokemon = { ...mockPokemon[0], id: 3, name: 'venusaur' };
-
-      pokemonService.getPokemonList.and.returnValue({ 
-        subscribe: (callbacks: any) => callbacks.next({ results: [{ name: 'venusaur', url: '' }] })
-      } as any);
-
-      pokemonService.getPokemonBatch.and.returnValue({ 
-        subscribe: (callbacks: any) => callbacks.next([newPokemon])
-      } as any);
-
-      service.loadMorePokemons();
-
-      expect(service.allPokemon().length).toBe(3);
-      expect(service.allPokemon()[2].name).toBe('venusaur');
     });
   });
 

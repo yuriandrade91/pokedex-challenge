@@ -35,8 +35,7 @@ export class PokemonList implements OnInit {
   showFilters = signal(false);
   searchInputValue = signal('');
 
-  // Debounce timer
-  private searchTimeout?: number;
+  private _searchTimeout?: number;
 
   ngOnInit() {
     this.setupSEO();
@@ -73,12 +72,11 @@ export class PokemonList implements OnInit {
 
     this.searchInputValue.set(value);
 
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
+    if (this._searchTimeout) {
+      clearTimeout(this._searchTimeout);
     }
 
-    // Debounce de 500ms
-    this.searchTimeout = window.setTimeout(() => {
+    this._searchTimeout = window.setTimeout(() => {
       this._pokemonState.updateSearchTerm(value);
     }, 500);
   }
@@ -109,16 +107,16 @@ export class PokemonList implements OnInit {
     this._router.navigate([`${PATHS.POKEMON}`, pokemonId]);
   }
 
-  goToPage(page: number) {
-    this._pokemonState.goToPage(page);
+  async goToPage(page: number) {
+    await this._pokemonState.goToPage(page);
   }
 
-  previousPage() {
-    this._pokemonState.previousPage();
+  async previousPage() {
+    await this._pokemonState.previousPage();
   }
 
-  nextPage() {
-    this._pokemonState.nextPage();
+  async nextPage() {
+    await this._pokemonState.nextPage();
   }
 
   getTypeColor(type: string) {
