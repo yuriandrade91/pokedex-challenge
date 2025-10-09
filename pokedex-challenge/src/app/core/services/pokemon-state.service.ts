@@ -25,10 +25,11 @@ export class PokemonStateService {
   searchTerm = this._searchTermState.asReadonly();
   selectedTypes = this._selectedTypesState.asReadonly();
   currentPage = this._currentPageState.asReadonly();
+  private _allLoadedPokemons = signal<Pokemon[]>([]);
 
   private pokemonFilteredByName = computed(() => {
     const term = this._searchTermState();
-    const pokemons = this._allPokemonState();
+    const pokemons = this._allLoadedPokemons();
 
     if (!term.trim()) {
       return pokemons;
@@ -49,7 +50,7 @@ export class PokemonStateService {
   });
 
   currentPagePokemons = computed(() => {
-    // Se tiver filtros ativos, usa a lógica de filtragem
+    // Se temos termos de busca ou filtros, usa a lista filtrada
     if (this._searchTermState() || this._selectedTypesState().length > 0) {
       const filtered = this.filteredPokemons();
       const page = this._currentPageState();
@@ -58,13 +59,17 @@ export class PokemonStateService {
       const endIndex = startIndex + pageSize;
       return filtered.slice(startIndex, endIndex);
     }
-    
-    // Se não tiver filtros, retorna os pokémons da página atual
-    return this._allPokemonState();
+
+    const page = this._currentPageState();
+    const pageSize = this._pageSizeState();
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return this._allLoadedPokemons().slice(startIndex, endIndex);
   });
 
   paginationState = computed<PaginationState>(() => {
-    const totalItems = this._totalItemsState();
+    const filteredItems = this.filteredPokemons();
+    const totalItems = filteredItems.length;
     const pageSize = this._pageSizeState();
     const currentPage = this._currentPageState();
 
@@ -85,8 +90,7 @@ export class PokemonStateService {
     this._errorState.set(null);
 
     try {
-      const pageSize = this._pageSizeState();
-      const listResponse = await this.pokemonService.getPokemonList(0, pageSize).toPromise();
+      const listResponse = await this.pokemonService.getPokemonList(0, limit).toPromise();
 
       if (!listResponse) {
         throw new Error('Erro ao carregar lista de Pokémon');
@@ -98,6 +102,7 @@ export class PokemonStateService {
       const pokemons = await this.pokemonService.getPokemonBatch(listResponse.results).toPromise();
 
       if (pokemons) {
+        this._allLoadedPokemons.set(pokemons);
         this._allPokemonState.set(pokemons);
       }
     } catch (err) {
